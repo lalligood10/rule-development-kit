@@ -35,14 +35,14 @@
 
 ## Requirements
 
-- **JDK 17.** This is not optional — see the warning below.
+- **JDK 21.** This is not optional — see the warning below.
 - **Maven 3.9+.**
 
-### ⚠️ Make sure Maven is actually using JDK 17
+### ⚠️ Make sure Maven is actually using JDK 21
 
 Maven uses `JAVA_HOME`, *not* whichever `java` is first on your `PATH`. If `JAVA_HOME` is
-unset, Maven falls back to its own bundled JDK — and a Homebrew-installed Maven pulls in
-Homebrew's `openjdk` formula, which is likely much newer than 17.
+unset, Maven falls back to its own bundled JDK — and a Homebrew-installed Maven may pull in
+a different major version.
 
 Check what Maven is really using before you build:
 
@@ -50,17 +50,18 @@ Check what Maven is really using before you build:
 mvn -v      # look at the "Java version:" line, not `java -version`
 ```
 
-If it does not say 17, set it explicitly:
+If it does not say 21, set it explicitly:
 
 ```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 17)   # macOS
-# export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk     # Linux, adjust to your install
+export JAVA_HOME=$(/usr/libexec/java_home -v 21)   # macOS
+# export JAVA_HOME=/usr/lib/jvm/temurin-21-jdk     # Linux, adjust to your install
 ```
 
-**Why this matters:** this project pins `mockito-core` 5.2.0 and `byte-buddy` 1.14.5, which
-predate recent JDKs. On a newer JDK the code still compiles, but most tests fail with
-`Mockito cannot mock this class`. On JDK 17 all tests pass. If you see that error, you are
-on the wrong JDK — it is not a problem with your rule.
+**Why this matters:** Mockito and Byte Buddy must be recent enough to instrument classes on
+JDK 21. This project pins `mockito-core` 5.14.2 and `byte-buddy` 1.15.11, which support it.
+On an older or mismatched JDK the code may still compile, but tests can fail with
+`Mockito cannot mock this class`. If you see that error, check your JDK and dependency
+versions — it is not a problem with your rule.
 
 ## Running the tests
 
