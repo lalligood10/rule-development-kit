@@ -35,14 +35,14 @@
 
 ## Requirements
 
-- **JDK 17.** This is not optional — see the warning below.
+- **JDK 21.** The build sets `maven.compiler.release` to 21, so older JDKs cannot compile it.
 - **Maven 3.9+.**
 
-### ⚠️ Make sure Maven is actually using JDK 17
+### ⚠️ Make sure Maven is actually using JDK 21
 
 Maven uses `JAVA_HOME`, *not* whichever `java` is first on your `PATH`. If `JAVA_HOME` is
 unset, Maven falls back to its own bundled JDK — and a Homebrew-installed Maven pulls in
-Homebrew's `openjdk` formula, which is likely much newer than 17.
+Homebrew's `openjdk` formula, which may not be 21.
 
 Check what Maven is really using before you build:
 
@@ -50,17 +50,20 @@ Check what Maven is really using before you build:
 mvn -v      # look at the "Java version:" line, not `java -version`
 ```
 
-If it does not say 17, set it explicitly:
+If it does not say 21, set it explicitly:
 
 ```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 17)   # macOS
-# export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk     # Linux, adjust to your install
+export JAVA_HOME=$(/usr/libexec/java_home -v 21)   # macOS
+# export JAVA_HOME=/usr/lib/jvm/temurin-21-jdk     # Linux, adjust to your install
 ```
 
-**Why this matters:** this project pins `mockito-core` 5.2.0 and `byte-buddy` 1.14.5, which
-predate recent JDKs. On a newer JDK the code still compiles, but most tests fail with
-`Mockito cannot mock this class`. On JDK 17 all tests pass. If you see that error, you are
-on the wrong JDK — it is not a problem with your rule.
+If Maven runs on an older JDK, compilation fails with `error: release version 21 not supported`.
+
+Mockito (5.24.0) and byte-buddy (1.18.14) are pinned to versions that support JDK 21.
+Surefire loads Mockito as a `-javaagent` instead of letting it self-attach, which JDK 21
+warns about and future JDKs will block.
+
+CI (`.github/workflows/build.yml`) runs `mvn -B -ntp verify` on Temurin 21 for every pull request.
 
 ## Running the tests
 
@@ -68,7 +71,7 @@ on the wrong JDK — it is not a problem with your rule.
 mvn test
 ```
 
-You should get `Tests run: 13, Failures: 0, Errors: 0` and `BUILD SUCCESS`.
+You should get `Tests run: 42, Failures: 0, Errors: 0` and `BUILD SUCCESS`.
 
 ## Updating the SailPoint class stubs
 
@@ -94,7 +97,7 @@ deploy it into `lib/` here.
 ### Steps
 
 ```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 17)
+export JAVA_HOME=$(/usr/libexec/java_home -v 21)
 RDK=$(pwd)                      # run this from the root of this repo
 ```
 
@@ -138,7 +141,7 @@ Use `deploy:deploy-file`, **not** `install:install-file` — only `deploy-file` 
 
 ```bash
 cd $RDK
-mvn test        # expect 13/13 passing
+mvn test        # expect 42/42 passing
 ```
 
 **6. Commit** the new `lib/sailpoint/rule-java-docs/<version>/` directory, the updated
@@ -158,13 +161,13 @@ javap -verbose -cp lib/sailpoint/rule-java-docs/<VERSION>/rule-java-docs-<VERSIO
 
 Java 8 bytecode is expected and correct. `rule-javadoc` sets
 `maven.compiler.target=8`, so the jar targets Java 8 **regardless of which JDK you build
-with**, and JDK 17 reads it without issue. You do not need a JDK 8 to produce it.
+with**, and JDK 21 reads it without issue. You do not need a JDK 8 to produce it.
 
 ## Troubleshooting
 
 | Symptom | Cause |
 | --- | --- |
-| `Mockito cannot mock this class: ...` | Maven is running on a JDK newer than 17. Check `mvn -v` and set `JAVA_HOME`. |
+| `error: release version 21 not supported` | Maven is running on a JDK older than 21. Check `mvn -v` and set `JAVA_HOME`. |
 | `Could not resolve dependencies for ... rule-java-docs:jar:<version>` | The version in `pom.xml` does not match a directory under `lib/sailpoint/rule-java-docs/`. |
 | Dependency resolves to the old stubs after an update | Stale local cache. Run `rm -rf ~/.m2/repository/sailpoint/rule-java-docs` and rebuild. |
 | `source value 8 is obsolete` warnings when building `rule-javadoc` | Expected, harmless. It targets Java 8 on purpose. |
